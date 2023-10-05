@@ -3,63 +3,79 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 
-class Server
+class ChatServer
 {
+    public class Client
+    {
+        CancellationTokenSource tokenSource = new();
+        Thread connectionHandeler;
+        public int _id;
+        public Socket _socket;
+
+        public Client(int id)
+        {
+            _id = id;
+            _socket = serverSocket.Accept();
+
+            connectionHandeler = new(() => ReciveMessage(tokenSource.Token));
+            connectionHandeler.Start();
+        }
+
+        public void SendMessage()
+        {
+            // Process and perform operations on the received data 
+            // Sending the message back to the client
+            string serverMessage = $"Hello, client-{_id}!";
+            byte[] temp2 = Encoding.ASCII.GetBytes(serverMessage);
+            _socket.Send(temp2);
+        }
+        public void ReciveMessage(CancellationToken token)
+        {
+            // Receiving message from the client
+            byte[] temp = new byte[1024];
+            int clientBytes = _socket.Receive(temp);
+            string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
+            Console.WriteLine($"Received data from client: {clientMessage}");
+        }
+
+        ~Client()
+        {
+            // Closing the connection
+            _socket.Shutdown(SocketShutdown.Both);
+            _socket.Close();
+        }
+    }
+
+    // Setting up the server IP address and port number
+    static IPAddress serverAddress = IPAddress.Parse("127.0.0.7");
+    static int serverPort = 8000;
+
+    // Creating our server socket
+    public static Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    
+
     public static void ConnectionHandeler(CancellationToken token)
     {
-        // Setting up the server IP address and port number
-        IPAddress serverAddress = IPAddress.Parse("127.0.0.7");
-        int serverPort = 8000;
+        List<Client> clients = new();
 
-        // Creating our server socket
-        Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        
         // Binding the socket 
         serverSocket.Bind(new IPEndPoint(serverAddress, serverPort));
 
         // server listening for incoming connections
-        serverSocket.Listen(5);
+        serverSocket.Listen();
         Console.WriteLine("Server is listening for connections");
 
-        while(true)
+        while(!token.IsCancellationRequested)
         {
             // Accepting a client connection
-            Socket clientSocket = serverSocket.Accept();
-            Console.WriteLine("Client connected!");
+            clients.Add(new Client(clients.Count));
+            Console.WriteLine($"Client-{clients[clients.Count - 1]._id} connected!");
 
-            // Receiving message from the client
-            byte[] temp = new byte[1024];
-            int clientBytes = clientSocket.Receive(temp);
-            string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
-            Console.WriteLine("Received data from client: " + clientMessage);
-
-            // Process and perform operations on the received data 
-            // Sending the message back to the client
-            string serverMessage = "Hello, client!";
-            byte[] temp2 = Encoding.ASCII.GetBytes(serverMessage);
-            clientSocket.Send(temp2);
-
-             // Closing the connection
-            clientSocket.Shutdown(SocketShutdown.Both);
-            clientSocket.Close();
+            //clients[0].ReciveMessage();
         }
 
         // Close the server socket
         serverSocket.Close();
-
-        while (!token.IsCancellationRequested)
-        {
-            Console.WriteLine("Lokking for connection.");
-            Thread.Sleep(2000); //Wait for 2s
-        }
-    }
-    public static void Test(CancellationToken token)
-    {
-        for (int i = 0; i < 100; i++)
-        {
-            Console.WriteLine(i);
-            Thread.Sleep(1000);
-        }
     }
 
     public static void Main()
