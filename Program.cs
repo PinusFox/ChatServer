@@ -31,11 +31,14 @@ class Server
         }
         public void ReciveMessage(CancellationToken token)
         {
-            // Receiving message from the client
-            byte[] temp = new byte[1024];
-            int clientBytes = _socket.Receive(temp);
-            string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
-            Console.WriteLine($"Received data from client: {clientMessage}");
+            while (!token.IsCancellationRequested)
+            {
+                // Receiving message from the client
+                byte[] temp = new byte[1024];
+                int clientBytes = _socket.Receive(temp);
+                string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
+                Console.WriteLine($"Received data from client-{_id}: {clientMessage}");
+            }
         }
 
         ~Client()
