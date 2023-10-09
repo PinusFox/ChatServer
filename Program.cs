@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Data;
+using System.Threading;
 using System.Net.Sockets;
 using System.Net;
 using System.Text;
@@ -37,15 +38,16 @@ class Server
                 byte[] temp = new byte[1024];
                 int clientBytes = _socket.Receive(temp);
                 string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
+
+                if (clientMessage == "exit")
+                {
+                    // Closing the connection
+                    _socket.Shutdown(SocketShutdown.Both);
+                    _socket.Close();
+                }
+
                 Console.WriteLine($"Received data from client-{_id}: {clientMessage}");
             }
-        }
-
-        ~Client()
-        {
-            // Closing the connection
-            _socket.Shutdown(SocketShutdown.Both);
-            _socket.Close();
         }
     }
 
@@ -56,7 +58,6 @@ class Server
     // Creating our server socket
     public static Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     
-
     public static void ConnectionHandeler(CancellationToken token)
     {
         List<Client> clients = new();
