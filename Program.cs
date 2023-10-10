@@ -9,7 +9,7 @@ class Server
     public class Client
     {
         CancellationTokenSource tokenSource = new();
-        Thread connectionHandeler;
+        Thread messageHandeler;
         public int _id;
         public Socket _socket;
 
@@ -18,8 +18,8 @@ class Server
             _id = id;
             _socket = serverSocket.Accept();
 
-            connectionHandeler = new(() => ReciveMessage(tokenSource.Token));
-            connectionHandeler.Start();
+            messageHandeler = new(() => ReciveMessage(tokenSource.Token));
+            messageHandeler.Start();
         }
 
         public void SendMessage()
@@ -39,12 +39,8 @@ class Server
                 int clientBytes = _socket.Receive(temp);
                 string clientMessage = Encoding.ASCII.GetString(temp, 0, clientBytes);
 
-                if (clientMessage == "exit")
-                {
-                    // Closing the connection
-                    _socket.Shutdown(SocketShutdown.Both);
-                    _socket.Close();
-                }
+                if (clientMessage == "exit") //Doesn't work if input null (Enter)
+                    tokenSource.Cancel();
 
                 Console.WriteLine($"Received data from client-{_id}: {clientMessage}");
             }
@@ -74,8 +70,6 @@ class Server
             // Accepting a client connection
             clients.Add(new Client(clients.Count));
             Console.WriteLine($"Client-{clients[clients.Count - 1]._id} connected!");
-
-            //clients[0].ReciveMessage();
         }
 
         // Close the server socket
